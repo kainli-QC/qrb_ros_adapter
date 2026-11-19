@@ -12,6 +12,7 @@
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/odometry_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/point_cloud_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/pose_array_hcm_converter.hpp"
+#include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/imu_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/pose_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/pose_stamped_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/tf_message_hcm_converter.hpp"
@@ -27,6 +28,7 @@
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/odometry_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/point_cloud_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/pose_array_ros_converter.hpp"
+#include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/imu_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/pose_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/pose_stamped_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/tf_message_ros_converter.hpp"
@@ -99,6 +101,12 @@ QRB_CONTRACT_MAPPING( Vector3Stamped,
     ::qrb::contract::geometry::v1::Vector3Stamped,
     ::qrb::adapter::Vector3StampedHcmDescriptor,
     ::qrb::adapter::Vector3StampedRosMessage, "vector3_stamped_bridge" )
+
+QRB_CONTRACT_MAPPING( Imu,
+    "qrb.contract.sensor.v1.Imu", Inline,
+    ::qrb::contract::sensor::v1::Imu,
+    ::qrb::adapter::ImuHcmDescriptor,
+    ::qrb::adapter::ImuRosMessage, "imu_bridge" )
 
 // Detections are Inline Contracts: the Contract carries every detection. The HCM descriptor keeps
 // its fixed-size records in its own buffer, which the HCM converter reads or fills.

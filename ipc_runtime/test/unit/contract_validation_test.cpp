@@ -59,6 +59,16 @@ sensor_proto::PointCloud2 MakeCloud()
 
 constexpr std::uint64_t kCloudBytes = 128;
 
+sensor_proto::Imu MakeImu() {
+  sensor_proto::Imu imu;
+  imu.mutable_header()->mutable_stamp()->set_sec(1);
+  imu.mutable_header()->set_frame_id("imu_link");
+  imu.mutable_orientation()->set_w(1.0);
+  imu.mutable_angular_velocity()->set_x(0.1);
+  imu.mutable_linear_acceleration()->set_z(-9.8);
+  return imu;
+}
+
 }  // namespace
 
 // Contract validation is the last line before a value reaches either
@@ -79,17 +89,17 @@ TEST(ContractValidation, RejectsInvalidPosesAndLayoutsThePayloadCannotBack)
   } cases[] = {
       {"NonFinitePosition",
           [](Pose & p) {
-            p.mutable_pose()->mutable_pose()->mutable_position()->set_y(
-                std::numeric_limits<double>::quiet_NaN());
-          }},
+         p.mutable_pose()->mutable_pose()->mutable_position()->set_y(
+             std::numeric_limits<double>::quiet_NaN());
+       }},
       {"ZeroQuaternion",
           [](Pose & p) { p.mutable_pose()->mutable_pose()->mutable_orientation()->set_w(0.0); }},
       {"PartialCovariance",
           [](Pose & p) {
-            for (int i = 0; i < 35; ++i) {
-              p.mutable_pose()->add_covariance(0);
-            }
-          }},
+         for (int i = 0; i < 35; ++i) {
+           p.mutable_pose()->add_covariance(0);
+         }
+       }},
       {"MissingPose", [](Pose & p) { p.clear_pose(); }},
       {"AbsoluteFrameId", [](Pose & p) { p.mutable_header()->set_frame_id("/map"); }},
       {"NanosecOverflow",
@@ -118,15 +128,15 @@ TEST(ContractValidation, RejectsInvalidPosesAndLayoutsThePayloadCannotBack)
       {"PayloadTooSmall", [](Cloud &) {}, kCloudBytes - 1},
       {"NanosecOverflow",
           [](Cloud & c) { c.mutable_header()->mutable_stamp()->set_nanosec(1000000000U); },
-          kCloudBytes},
+       kCloudBytes},
       {"WidthOverflow", [](Cloud & c) { c.set_width(std::numeric_limits<std::uint32_t>::max()); },
-          std::numeric_limits<std::uint64_t>::max()},
+       std::numeric_limits<std::uint64_t>::max()},
       {"FieldBeyondPointStep", [](Cloud & c) { c.mutable_fields(3)->set_count(5); }, kCloudBytes},
       {"UnknownDatatype",
           [](Cloud & c) {
             c.mutable_fields(0)->set_datatype(sensor_proto::POINT_FIELD_TYPE_UNSPECIFIED);
-          },
-          kCloudBytes},
+       },
+       kCloudBytes},
   };
   for (const auto & c : clouds) {
     SCOPED_TRACE(c.name);
@@ -182,25 +192,25 @@ TEST(ContractValidation, RejectsInvalidOdometry)
           [](Odom & o) { o.mutable_pose()->mutable_pose()->mutable_orientation()->set_w(0.0); }},
       {"NonFiniteLinear",
           [](Odom & o) {
-            o.mutable_twist()->mutable_twist()->mutable_linear()->set_y(
-                std::numeric_limits<double>::quiet_NaN());
-          }},
+         o.mutable_twist()->mutable_twist()->mutable_linear()->set_y(
+             std::numeric_limits<double>::quiet_NaN());
+       }},
       {"NonFiniteAngular",
           [](Odom & o) {
-            o.mutable_twist()->mutable_twist()->mutable_angular()->set_z(
-                std::numeric_limits<double>::infinity());
-          }},
+         o.mutable_twist()->mutable_twist()->mutable_angular()->set_z(
+             std::numeric_limits<double>::infinity());
+       }},
       {"PartialTwistCovariance",
           [](Odom & o) {
-            for (int i = 0; i < 35; ++i)
-              o.mutable_twist()->add_covariance(0);
-          }},
+         for (int i = 0; i < 35; ++i)
+           o.mutable_twist()->add_covariance(0);
+       }},
       {"NonFiniteTwistCovariance",
           [](Odom & o) {
-            for (int i = 0; i < 36; ++i)
-              o.mutable_twist()->add_covariance(
-                  i == 7 ? std::numeric_limits<double>::infinity() : 0);
-          }},
+         for (int i = 0; i < 36; ++i)
+           o.mutable_twist()->add_covariance(
+               i == 7 ? std::numeric_limits<double>::infinity() : 0);
+       }},
       {"AbsoluteChildFrameId", [](Odom & o) { o.set_child_frame_id("/base_link"); }},
       {"AbsoluteFrameId", [](Odom & o) { o.mutable_header()->set_frame_id("/odom"); }},
       {"NanosecOverflow",
@@ -234,11 +244,11 @@ TEST(ContractValidation, RejectsInvalidTwistStamped)
       {"NonFiniteLinear",
           [](Twist & t) {
             t.mutable_twist()->mutable_linear()->set_z(std::numeric_limits<double>::quiet_NaN());
-          }},
+       }},
       {"NonFiniteAngular",
           [](Twist & t) {
             t.mutable_twist()->mutable_angular()->set_y(-std::numeric_limits<double>::infinity());
-          }},
+       }},
       {"AbsoluteFrameId", [](Twist & t) { t.mutable_header()->set_frame_id("/base_link"); }},
       {"NanosecOverflow",
           [](Twist & t) { t.mutable_header()->mutable_stamp()->set_nanosec(1000000000U); }},
@@ -277,17 +287,17 @@ TEST(ContractValidation, RejectsInvalidTFMessage)
       {"ZeroRotation",
           [](TF & m) {
             m.mutable_transforms(1)->mutable_transform()->mutable_rotation()->set_w(0);
-          }},
+       }},
       {"NonFiniteTranslation",
           [](TF & m) {
             m.mutable_transforms(0)->mutable_transform()->mutable_translation()->set_x(
                 std::numeric_limits<double>::quiet_NaN());
-          }},
+       }},
       {"NonFiniteRotation",
           [](TF & m) {
             m.mutable_transforms(1)->mutable_transform()->mutable_rotation()->set_y(
                 std::numeric_limits<double>::infinity());
-          }},
+       }},
       {"AbsoluteChildFrameId",
           [](TF & m) { m.mutable_transforms(1)->set_child_frame_id("/odom"); }},
       {"AbsoluteFrameId",
@@ -295,14 +305,14 @@ TEST(ContractValidation, RejectsInvalidTFMessage)
       {"NanosecOverflow",
           [](TF & m) {
             m.mutable_transforms(0)->mutable_header()->mutable_stamp()->set_nanosec(1000000000U);
-          }},
+       }},
       {"TooManyTransforms",
           [](TF & m) {
-            const auto first = m.transforms(0);
-            while (static_cast<std::size_t>(m.transforms_size()) <=
-                   contract_limits::kMaxTransformCount)
-              *m.add_transforms() = first;
-          }},
+         const auto first = m.transforms(0);
+         while (static_cast<std::size_t>(m.transforms_size()) <=
+                contract_limits::kMaxTransformCount)
+           *m.add_transforms() = first;
+       }},
   };
   for (const auto & c : cases) {
     SCOPED_TRACE(c.name);
@@ -867,4 +877,84 @@ TEST(ContractValidation, AcceptsDetectionArraysAndRejectsInvalidDetections)
     auto * hypothesis = a.mutable_detections(0)->mutable_results(0)->mutable_hypothesis();
     hypothesis->set_class_id(std::string(300, 'c'));
   });
+}
+
+// UT-IPC-11: Imu needs a valid header, a present non-zero orientation, finite
+// angular_velocity and linear_acceleration, and 0-or-9-value covariances.
+TEST(ContractValidation, RejectsInvalidImu) {
+  sensor_proto::Imu full = MakeImu();
+  EXPECT_TRUE(ValidateImu(full));
+  for (int i = 0; i < 9; ++i) {
+    full.add_orientation_covariance(0.1 * i);
+    full.add_angular_velocity_covariance(0.2 * i);
+    full.add_linear_acceleration_covariance(0.3 * i);
+  }
+  EXPECT_TRUE(ValidateImu(full));
+
+  using Imu = sensor_proto::Imu;
+  const struct {
+    const char *name;
+    void (*mutate)(Imu &);
+  } cases[] = {
+      {"MissingOrientation", [](Imu &m) { m.clear_orientation(); }},
+      {"ZeroQuaternion", [](Imu &m) { m.mutable_orientation()->set_w(0.0); }},
+      {"NonFiniteOrientation",
+       [](Imu &m) {
+         m.mutable_orientation()->set_x(
+             std::numeric_limits<double>::quiet_NaN());
+       }},
+      {"MissingAngularVelocity", [](Imu &m) { m.clear_angular_velocity(); }},
+      {"NonFiniteAngularVelocity",
+       [](Imu &m) {
+         m.mutable_angular_velocity()->set_y(
+             -std::numeric_limits<double>::infinity());
+       }},
+      {"MissingLinearAcceleration",
+       [](Imu &m) { m.clear_linear_acceleration(); }},
+      {"NonFiniteLinearAcceleration",
+       [](Imu &m) {
+         m.mutable_linear_acceleration()->set_z(
+             std::numeric_limits<double>::quiet_NaN());
+       }},
+      {"PartialOrientationCovariance",
+       [](Imu &m) {
+         for (int i = 0; i < 8; ++i)
+           m.add_orientation_covariance(0);
+       }},
+      {"PartialAngularVelocityCovariance",
+       [](Imu &m) {
+         for (int i = 0; i < 8; ++i)
+           m.add_angular_velocity_covariance(0);
+       }},
+      {"PartialLinearAccelerationCovariance",
+       [](Imu &m) {
+         for (int i = 0; i < 8; ++i)
+           m.add_linear_acceleration_covariance(0);
+       }},
+      {"AbsoluteFrameId",
+       [](Imu &m) { m.mutable_header()->set_frame_id("/imu_link"); }},
+      {"NanosecOverflow",
+       [](Imu &m) {
+         m.mutable_header()->mutable_stamp()->set_nanosec(1000000000U);
+       }},
+  };
+  for (const auto &c : cases) {
+    SCOPED_TRACE(c.name);
+    Imu imu = MakeImu();
+    c.mutate(imu);
+    const ConversionResult rejected = ValidateImu(imu);
+    EXPECT_FALSE(rejected);
+    EXPECT_FALSE(rejected.Diagnostic().empty());
+  }
+
+  // Per REP-145: orientation_covariance[0] == -1 signals that orientation is
+  // unknown. An all-zero quaternion is valid in this case; IMUs that only
+  // report angular velocity and linear acceleration use this convention.
+  {
+    Imu rep145 = MakeImu();
+    rep145.mutable_orientation()->set_w(0.0);
+    for (int i = 0; i < 9; ++i)
+      rep145.add_orientation_covariance(i == 0 ? -1.0 : 0.0);
+    EXPECT_TRUE(ValidateImu(rep145));
+  }
 }

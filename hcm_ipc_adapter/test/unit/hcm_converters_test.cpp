@@ -12,6 +12,7 @@
 
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/image_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/joint_state_hcm_converter.hpp"
+#include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/imu_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/odometry_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/point_cloud_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/pose_array_hcm_converter.hpp"
@@ -76,7 +77,7 @@ PointCloudHcmContract MakeCloud()
 struct HeapCloudDescriptor
 {
   explicit HeapCloudDescriptor(std::size_t capacity, std::size_t offset = 0) : storage(capacity, 0)
-  {
+{
     descriptor.pBuf = storage.data();
     descriptor.size = capacity;
     descriptor.offset = offset;
@@ -136,7 +137,7 @@ TEST(HcmConverters, RoundTripEveryFieldAndRejectInvalidValuesOrPayloads)
     std::vector<std::uint8_t> source(kCloudBytes + 32, 0xA5);
     HeapCloudDescriptor target(256, 16);
     ASSERT_TRUE((ConvertContractToHcm<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        MakeCloud(), DmaBufView{source.data(), source.size()}, target.descriptor)));
+            MakeCloud(), DmaBufView{source.data(), source.size()}, target.descriptor)));
 
     EXPECT_EQ(target.descriptor.validSize, kCloudBytes);
     EXPECT_EQ(target.descriptor.timestampNs, 2000000042u);
@@ -155,19 +156,19 @@ TEST(HcmConverters, RoundTripEveryFieldAndRejectInvalidValuesOrPayloads)
 
     PointCloudHcmContract back;
     ASSERT_TRUE((ConvertHcmToContract<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        target.descriptor, back)));
+            target.descriptor, back)));
     EXPECT_EQ(back.SerializeAsString(), MakeCloud().SerializeAsString());
 
     // ROS -> HCM: the host buffer and the source payload must both hold the layout.
     HeapCloudDescriptor small(kCloudBytes - 1);
     EXPECT_FALSE((ConvertContractToHcm<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        MakeCloud(), DmaBufView{source.data(), source.size()}, small.descriptor)));
+            MakeCloud(), DmaBufView{source.data(), source.size()}, small.descriptor)));
     EXPECT_EQ(small.descriptor.validSize, 0u);
     HeapCloudDescriptor other(256);
     EXPECT_FALSE((ConvertContractToHcm<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        MakeCloud(), DmaBufView{source.data(), kCloudBytes - 1}, other.descriptor)));
+            MakeCloud(), DmaBufView{source.data(), kCloudBytes - 1}, other.descriptor)));
     EXPECT_FALSE((ConvertContractToHcm<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        MakeCloud(), DmaBufView{nullptr, kCloudBytes}, other.descriptor)));
+            MakeCloud(), DmaBufView{nullptr, kCloudBytes}, other.descriptor)));
 
     // The descriptor holds at most QRB_POINT_CLOUD_MAX_FIELDS fields and
     // fixed-size names; a cloud beyond that is rejected before any write.
@@ -188,7 +189,7 @@ TEST(HcmConverters, RoundTripEveryFieldAndRejectInvalidValuesOrPayloads)
     for (const PointCloudHcmContract * rejected : {&tooManyFields, &longName}) {
       HeapCloudDescriptor capacity(256);
       EXPECT_FALSE((ConvertContractToHcm<PointCloudHcmContract, PointCloudHcmDescriptor>(
-          *rejected, DmaBufView{source.data(), source.size()}, capacity.descriptor)));
+              *rejected, DmaBufView{source.data(), source.size()}, capacity.descriptor)));
       EXPECT_EQ(capacity.descriptor.validSize, 0u);
       EXPECT_EQ(capacity.descriptor.numFields, 0u);
     }
@@ -197,10 +198,10 @@ TEST(HcmConverters, RoundTripEveryFieldAndRejectInvalidValuesOrPayloads)
     PointCloudHcmContract out;
     target.descriptor.validSize = kCloudBytes - 1;
     EXPECT_FALSE((ConvertHcmToContract<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        target.descriptor, out)));
+            target.descriptor, out)));
     target.descriptor.validSize = target.descriptor.size + 1;
     EXPECT_FALSE((ConvertHcmToContract<PointCloudHcmContract, PointCloudHcmDescriptor>(
-        target.descriptor, out)));
+            target.descriptor, out)));
   }
 }
 
@@ -260,7 +261,7 @@ TEST(HcmConverters, OdometryRoundTripsEveryFieldAndRejectsInvalidValues)
   invalid.mutable_twist()->mutable_twist()->mutable_linear()->set_x(
       std::numeric_limits<double>::quiet_NaN());
   const ConversionResult in = ConvertContractToHcm<OdometryHcmContract, OdometryHcmDescriptor>(
-      invalid, DmaBufView{}, untouched);
+          invalid, DmaBufView{}, untouched);
   EXPECT_FALSE(in);
   EXPECT_FALSE(in.Diagnostic().empty());
   EXPECT_TRUE(untouched.childFrameId == "untouched");
@@ -273,7 +274,7 @@ TEST(HcmConverters, OdometryRoundTripsEveryFieldAndRejectsInvalidValues)
   longChild.set_child_frame_id(tooLong);
   for (const OdometryHcmContract * rejected : {&longFrame, &longChild}) {
     EXPECT_FALSE((ConvertContractToHcm<OdometryHcmContract, OdometryHcmDescriptor>(
-        *rejected, DmaBufView{}, untouched)));
+            *rejected, DmaBufView{}, untouched)));
     EXPECT_TRUE(untouched.childFrameId == "untouched");
   }
 
@@ -367,8 +368,8 @@ TFMessageHcmContract MakeTFMessage(int count)
 struct HeapTFDescriptor
 {
   explicit HeapTFDescriptor(std::uint32_t capacity, std::size_t offset = 0)
-    : storage(offset + TFMessageHcmDescriptor::CalcBufferSize(capacity), 0)
-  {
+      : storage(offset + TFMessageHcmDescriptor::CalcBufferSize(capacity), 0)
+{
     descriptor.pBuf = storage.data();
     descriptor.size = storage.size();
     descriptor.offset = offset;
@@ -389,12 +390,12 @@ TEST(HcmConverters, TFMessageRoundTripsThroughTheBufferAndRejectsWhatItCannotHol
   // An odd offset: the converter must not need the array to be aligned.
   HeapTFDescriptor heap(3, 5);
   ASSERT_TRUE((ConvertContractToHcm<TFMessageHcmContract, TFMessageHcmDescriptor>(
-      source, DmaBufView{}, heap.descriptor)));
+          source, DmaBufView{}, heap.descriptor)));
   EXPECT_EQ(heap.descriptor.transformCount, 3u);
   EXPECT_EQ(heap.descriptor.validSize, TFMessageHcmDescriptor::CalcBufferSize(3));
   QRB::Memory::TransformStamped_t second{};
   std::memcpy(&second, static_cast<std::uint8_t *>(heap.descriptor.GetDataPtr()) + sizeof(second),
-      sizeof(second));
+              sizeof(second));
   EXPECT_EQ(second.timestampNs, 5000000011u);
   EXPECT_TRUE(second.frameId == "odom");
   EXPECT_TRUE(second.childFrameId == "base_link");
@@ -410,7 +411,7 @@ TEST(HcmConverters, TFMessageRoundTripsThroughTheBufferAndRejectsWhatItCannotHol
   // An empty message needs no buffer.
   TFMessageHcmDescriptor bufferless;
   ASSERT_TRUE((ConvertContractToHcm<TFMessageHcmContract, TFMessageHcmDescriptor>(
-      TFMessageHcmContract{}, DmaBufView{}, bufferless)));
+          TFMessageHcmContract{}, DmaBufView{}, bufferless)));
   EXPECT_EQ(bufferless.transformCount, 0u);
   ASSERT_TRUE(
       (ConvertHcmToContract<TFMessageHcmContract, TFMessageHcmDescriptor>(bufferless, back)));
@@ -441,19 +442,71 @@ TEST(HcmConverters, TFMessageRoundTripsThroughTheBufferAndRejectsWhatItCannotHol
   HeapTFDescriptor foreign(3);
   foreign.descriptor.allocatorType = QC::Memory::QC_MEMORY_ALLOCATOR_LAST;
   EXPECT_FALSE((ConvertContractToHcm<TFMessageHcmContract, TFMessageHcmDescriptor>(
-      source, DmaBufView{}, foreign.descriptor)));
+          source, DmaBufView{}, foreign.descriptor)));
 
   // A transformCount beyond the buffer, or a non-finite transform from HCM, never reaches ROS.
   HeapTFDescriptor overCount(2);
   overCount.descriptor.transformCount = 3;
   TFMessageHcmContract out;
   EXPECT_FALSE((ConvertHcmToContract<TFMessageHcmContract, TFMessageHcmDescriptor>(
-      overCount.descriptor, out)));
+          overCount.descriptor, out)));
   QRB::Memory::TransformStamped_t bad{};
   bad.transform.translation.y = std::numeric_limits<double>::infinity();
   std::memcpy(heap.descriptor.GetDataPtr(), &bad, sizeof(bad));
   EXPECT_FALSE(
       (ConvertHcmToContract<TFMessageHcmContract, TFMessageHcmDescriptor>(heap.descriptor, out)));
+}
+
+// UT-HCM-09: Imu keeps its header, orientation, angular_velocity and
+// linear_acceleration with all three covariances, and rejects what the
+// fixed-size descriptor cannot hold.
+TEST(HcmConverters, ImuRoundTripsEveryFieldAndRejectsInvalidValues) {
+  const ImuHcmContract source = MakeImu();
+  ImuHcmDescriptor descriptor;
+  ASSERT_TRUE((ConvertContractToHcm<ImuHcmContract, ImuHcmDescriptor>(
+      source, DmaBufView{}, descriptor)));
+  EXPECT_EQ(descriptor.timestampNs, 5500000000u);
+  EXPECT_TRUE(descriptor.frameId == "imu_link");
+  EXPECT_DOUBLE_EQ(descriptor.orientation.w, 1.0);
+  EXPECT_DOUBLE_EQ(descriptor.angular_velocity.x, 0.1);
+  EXPECT_DOUBLE_EQ(descriptor.angular_velocity.y, -0.2);
+  EXPECT_DOUBLE_EQ(descriptor.linear_acceleration.z, -9.8);
+  EXPECT_DOUBLE_EQ(descriptor.orientation_covariance[8], 0.08);
+  EXPECT_DOUBLE_EQ(descriptor.angular_velocity_covariance[8], 0.16);
+  EXPECT_DOUBLE_EQ(descriptor.linear_acceleration_covariance[8], 0.24);
+
+  ImuHcmContract back;
+  back.mutable_header()->set_frame_id("stale");
+  ASSERT_TRUE((ConvertHcmToContract<ImuHcmContract, ImuHcmDescriptor>(
+      descriptor, back)));
+  EXPECT_EQ(back.SerializeAsString(), source.SerializeAsString());
+
+  // A rejected message leaves the descriptor untouched.
+  ImuHcmDescriptor untouched;
+  ASSERT_EQ(untouched.frameId.Assign("untouched"), QC::QC_STATUS_OK);
+  ImuHcmContract invalid = MakeImu();
+  invalid.mutable_orientation()->set_w(0.0);
+  invalid.mutable_orientation()->set_x(0.0);
+  const ConversionResult in =
+      ConvertContractToHcm<ImuHcmContract, ImuHcmDescriptor>(
+          invalid, DmaBufView{}, untouched);
+  EXPECT_FALSE(in);
+  EXPECT_FALSE(in.Diagnostic().empty());
+  EXPECT_TRUE(untouched.frameId == "untouched");
+
+  // FrameId_t is fixed-size: a longer frame_id is rejected, never truncated.
+  ImuHcmContract longFrame = MakeImu();
+  longFrame.mutable_header()->set_frame_id(
+      std::string(QRB::Memory::QRB_FRAME_ID_MAX_LEN + 1, 'f'));
+  EXPECT_FALSE((ConvertContractToHcm<ImuHcmContract, ImuHcmDescriptor>(
+      longFrame, DmaBufView{}, untouched)));
+  EXPECT_TRUE(untouched.frameId == "untouched");
+
+  // A non-finite value produced on the HCM side must not reach ROS.
+  descriptor.angular_velocity.x = std::numeric_limits<double>::infinity();
+  ImuHcmContract out;
+  EXPECT_FALSE((
+      ConvertHcmToContract<ImuHcmContract, ImuHcmDescriptor>(descriptor, out)));
 }
 
 namespace

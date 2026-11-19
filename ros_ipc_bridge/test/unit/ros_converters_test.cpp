@@ -19,6 +19,7 @@
 #include "qrb_ros_adapter/ipc_runtime/contract_time.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/image_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/joint_state_ros_converter.hpp"
+#include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/imu_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/odometry_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/point_cloud_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/pose_array_ros_converter.hpp"
@@ -77,7 +78,7 @@ PointCloudRosMessage MakeRosCloud(std::size_t bufferSize = kCloudBytes)
   cloud.is_dense = true;
   cloud.fields = {Field("i8", 0, PF::INT8), Field("u8", 1, PF::UINT8), Field("i16", 2, PF::INT16),
       Field("u16", 4, PF::UINT16), Field("i32", 8, PF::INT32), Field("u32", 12, PF::UINT32),
-      Field("f32", 16, PF::FLOAT32), Field("f64", 24, PF::FLOAT64)};
+                  Field("f32", 16, PF::FLOAT32), Field("f64", 24, PF::FLOAT64)};
   cloud.data_fd = MakeMemfdBuffer(bufferSize);
   return cloud;
 }
@@ -716,4 +717,51 @@ TEST(Vector3StampedRosConverter, MapsEveryFieldBothWaysAndRejectsInvalidValues)
   badContract.clear_vector();
   EXPECT_FALSE(Vector3StampedRosConversion::ContractToRos(badContract, back));
   EXPECT_EQ(back, ros);
+}
+
+// UT-ROS-08: sensor_msgs/Imu maps 1:1 to the Contract; covariates with 9 values
+// round-trip exactly, an empty Contract covariance returns the zero array, and
+// an invalid value is rejected in either direction.
+TEST(ImuRosConverter, MapsEveryFieldBothWaysAndRejectsInvalidValues) {
+  ImuRosMessage ros;
+  ros.header.stamp.sec = 3;
+  ros.header.stamp.nanosec = 250000000;
+  ros.header.frame_id = "imu_link";
+  ros.orientation.w = 1.0;
+  ros.angular_velocity.x = 0.1;
+  ros.angular_velocity.y = -0.2;
+  ros.angular_velocity.z = 0.3;
+  ros.linear_acceleration.z = -9.8;
+  for (std::size_t i = 0; i < 9; ++i) {
+    ros.orientation_covariance[i] = 0.01 * static_cast<double>(i);
+    ros.angular_velocity_covariance[i] = 0.02 * static_cast<double>(i);
+    ros.linear_acceleration_covariance[i] = 0.03 * static_cast<double>(i);
+  }
+
+  ImuRosContract contract;
+  ASSERT_TRUE(ImuRosConversion::RosToContract(ros, contract));
+  EXPECT_EQ(contract.header().frame_id(), "imu_link");
+  EXPECT_EQ(contract.header().stamp().nanosec(), 250000000u);
+  EXPECT_DOUBLE_EQ(contract.orientation().w(), 1.0);
+  EXPECT_DOUBLE_EQ(contract.angular_velocity().x(), 0.1);
+  EXPECT_DOUBLE_EQ(contract.linear_acceleration().z(), -9.8);
+  ASSERT_EQ(contract.orientation_covariance_size(), 9);
+  EXPECT_DOUBLE_EQ(contract.orientation_covariance(8), 0.08);
+
+  ImuRosMessage back;
+  ASSERT_TRUE(ImuRosConversion::ContractToRos(contract, back));
+  EXPECT_EQ(back, ros);
+
+  // An empty Contract covariance means unknown; ROS gets the zero array.
+  contract.clear_orientation_covariance();
+  ASSERT_TRUE(ImuRosConversion::ContractToRos(contract, back));
+  EXPECT_DOUBLE_EQ(back.orientation_covariance[8], 0.0);
+
+  ImuRosMessage invalid = ros;
+  invalid.angular_velocity.y = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_FALSE(ImuRosConversion::RosToContract(invalid, contract));
+  ImuRosContract badContract;
+  ASSERT_TRUE(ImuRosConversion::RosToContract(ros, badContract));
+  badContract.mutable_header()->set_frame_id("/imu_link");
+  EXPECT_FALSE(ImuRosConversion::ContractToRos(badContract, back));
 }

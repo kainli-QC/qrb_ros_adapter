@@ -485,6 +485,62 @@ struct RosProbeSample<adapter::PoseStampedRosMessage>
   }
 };
 
+// --- sensor.v1.Imu (inline) ----------------------------------------------------
+
+/** The probe stamps the nine values of linear_acceleration_covariance. */
+template <>
+struct RosProbeSample<adapter::ImuRosMessage>
+{
+  using Message = adapter::ImuRosMessage;
+  static constexpr const char * kFrameId = "stream_probe";
+
+  class Source
+  {
+  public:
+    Source(std::uint64_t, std::uint32_t, std::uint32_t streamTag) : streamTag_(streamTag) {}
+
+    SendOutcome Next(std::uint64_t sequence,
+        std::unique_ptr<Message> & out,
+        std::uint64_t & sendTimeNs)
+    {
+      out = std::make_unique<Message>();
+      out->header.frame_id = kFrameId;
+      out->orientation.w = 1.0;
+      out->orientation_covariance.fill(-1.0);
+      out->angular_velocity_covariance.fill(-1.0);
+      const std::uint64_t now = MonotonicNowNs();
+      sendTimeNs = now;
+      out->header.stamp.sec = static_cast<std::int32_t>(now / 1000000000ull);
+      out->header.stamp.nanosec = static_cast<std::uint32_t>(now % 1000000000ull);
+      StampDoubles(out->linear_acceleration_covariance.data(),
+          out->linear_acceleration_covariance.size(), streamTag_, sequence, now);
+      return SendOutcome::kSent;
+    }
+
+    std::uint64_t PayloadBytes() const
+    {
+      return sizeof(Message{}.linear_acceleration_covariance);
+    }
+
+  private:
+    std::uint32_t streamTag_;
+  };
+
+  static FrameReading Check(const Message & imu,
+      std::uint32_t streamTag,
+      std::uint64_t & payloadBytes)
+  {
+    payloadBytes = sizeof(imu.linear_acceleration_covariance);
+    FrameReading reading = CheckDoubles(imu.linear_acceleration_covariance.data(),
+        imu.linear_acceleration_covariance.size(), streamTag);
+    if (reading.check == FrameCheck::kOk &&
+        (imu.header.frame_id != kFrameId || imu.orientation.w != 1.0 ||
+         imu.orientation_covariance[0] != -1.0))
+      reading.check = FrameCheck::kBadLayout;
+    return reading;
+  }
+};
+
 /**
  * kPoses poses. The six values of the first carry the probe stamp, the bytes either side
  * reports; every pose has the identity orientation's w, and each of the others a marker in its x,

@@ -55,6 +55,7 @@
 #include "QRB/Memory/Geometry/TwistDescriptor.hpp"
 #include "QRB/Memory/Geometry/Vector3Descriptor.hpp"
 #include "QRB/Memory/Navigation/OdometryDescriptor.hpp"
+#include "QRB/Memory/Sensor/ImuDescriptor.hpp"
 #include "QRB/Memory/Sensor/JointStateBufferDescriptor.hpp"
 #include "QRB/Memory/Sensor/PointCloudDescriptor.hpp"
 #include "QRB/Memory/Vision/ObjectDetection2dDescriptor.hpp"
@@ -188,6 +189,7 @@ private:
             "qrb.contract.geometry.v1.PoseWithCovarianceStamped";
     static constexpr const char *kDetection2DContract = "qrb.contract.vision.v1.Detection2DArray";
     static constexpr const char *kDetection3DContract = "qrb.contract.vision.v1.Detection3DArray";
+    static constexpr const char *kImuContract = "qrb.contract.sensor.v1.Imu";
     /**
      * The Contracts FillFrame() / UpdateFrame() can fill, so the sample sends them without
      * input_topic. To add one, add it here and give both a case for its descriptor.
@@ -205,6 +207,7 @@ private:
             "qrb.contract.geometry.v1.Vector3Stamped",
             kDetection2DContract,
             kDetection3DContract,
+            kImuContract,
     };
     bool IsFilledContract() const;
     /** Bytes the two detections of the sample take in a buffer, 0 for another Contract. */
@@ -693,6 +696,16 @@ void SampleIpcAdapter::FillFrame( ContractFrame &frame )
                 QRB::Memory::ObjectDetection3dDescriptor_t::CalcBufferSize( kSampleDetections );
     }
 
+    auto *imu = dynamic_cast<QRB::Memory::ImuDescriptor_t *>( &frame.Descriptor() );
+    if ( nullptr != imu )
+    {
+        (void) imu->frameId.Assign( "imu_link" );
+        imu->orientation.x = 0.0;
+        imu->orientation.y = 0.0;
+        imu->orientation.z = 0.0;
+        imu->orientation.w = 1.0;
+    }
+
     auto *cloud = dynamic_cast<QRB::Memory::PointCloudDescriptor_t *>( &frame.Descriptor() );
     if ( nullptr == cloud )
     {
@@ -839,6 +852,15 @@ void SampleIpcAdapter::UpdateFrame( ContractFrame &frame )
         // Tilt from straight down towards x by 1 percent per frame, and back every 100 frames.
         vector3->timestampNs = nowNs;
         vector3->vector.x = (double) ( m_frames % 100 ) * 0.01;
+    }
+
+    auto *imu = dynamic_cast<QRB::Memory::ImuDescriptor_t *>( &frame.Descriptor() );
+    if ( nullptr != imu )
+    {
+        // Constant gravity along -z; yaw rate cycles through 0..2π over 360 frames.
+        imu->timestampNs = nowNs;
+        imu->linear_acceleration.z = -9.8;
+        imu->angular_velocity.z = (double) ( m_frames % 360 ) * 0.01745329;
     }
 }
 

@@ -13,6 +13,7 @@
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/hcm_converters.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/image_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/joint_state_hcm_converter.hpp"
+#include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/imu_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/odometry_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/point_cloud_hcm_converter.hpp"
 #include "qrb_ros_adapter/hcm_ipc_adapter/flow_client/pose_array_hcm_converter.hpp"
@@ -139,6 +140,17 @@ TEST(HcmContractBinding, EveryContractHasOneCompleteBindingAndAMatchingFactory)
   EXPECT_FALSE(tf.acceptsDescriptor(jointDescriptor));
   EXPECT_FALSE(joints.contractToHcm(jointContract, DmaBufView{}, tfDescriptor));
   EXPECT_FALSE(joints.hcmToContract(tfDescriptor, jointContract));
+
+  // Imu and Twist are both inline sensor contracts; neither takes the other's
+  // descriptor.
+  const HcmContractBinding &imu = *FindHcmContractBinding(kImuContractType);
+  ImuHcmDescriptor imuDescriptor;
+  ImuHcmContract imuContract;
+  EXPECT_TRUE(imu.acceptsDescriptor(imuDescriptor));
+  EXPECT_FALSE(imu.acceptsDescriptor(twistDescriptor));
+  EXPECT_FALSE(twist.acceptsDescriptor(imuDescriptor));
+  EXPECT_FALSE(imu.contractToHcm(imuContract, DmaBufView{}, twistDescriptor));
+  EXPECT_FALSE(imu.hcmToContract(twistDescriptor, imuContract));
 }
 
 namespace

@@ -685,6 +685,67 @@ struct HcmProbeSample<adapter::Vector3StampedHcmDescriptor>
   }
 };
 
+// --- sensor.v1.Imu (inline) ---------------------------------------------------
+
+/**
+ * The probe stamps linear_acceleration_covariance (nine values); the orientation and angular
+ * velocity covariances are filled with -1 as layout markers. The layout is the one
+ * RosProbeSample<> uses, so either side checks what the other sends.
+ */
+template <>
+struct HcmProbeSample<adapter::ImuHcmDescriptor>
+{
+  using Descriptor = adapter::ImuHcmDescriptor;
+  static constexpr const char * kFrameId = "stream_probe";
+
+  static std::string CheckPayloadBytes(std::uint64_t) { return {}; }
+
+  static std::uint64_t SentBytes(const HcmSenderState &)
+  {
+    return sizeof(std::declval<const Descriptor &>().linear_acceleration_covariance);
+  }
+
+  static HcmStampResult Stamp(Descriptor & imu, HcmSenderState & state, std::uint64_t sequence)
+  {
+    if (imu.frameId != kFrameId)
+      (void)imu.frameId.Assign(kFrameId);  // fits FrameId_t
+    imu.orientation.x = 0.0;
+    imu.orientation.y = 0.0;
+    imu.orientation.z = 0.0;
+    imu.orientation.w = 1.0;
+    imu.angular_velocity.x = 0.0;
+    imu.angular_velocity.y = 0.0;
+    imu.angular_velocity.z = 0.0;
+    imu.linear_acceleration.x = 0.0;
+    imu.linear_acceleration.y = 0.0;
+    imu.linear_acceleration.z = 0.0;
+    std::fill(std::begin(imu.orientation_covariance),
+        std::end(imu.orientation_covariance), -1.0);
+    std::fill(std::begin(imu.angular_velocity_covariance),
+        std::end(imu.angular_velocity_covariance), -1.0);
+    const std::uint64_t now = MonotonicNowNs();
+    state.lastSendNs = now;
+    imu.timestampNs = now;
+    StampDoubles(imu.linear_acceleration_covariance,
+        std::size(imu.linear_acceleration_covariance), state.streamTag, sequence, now);
+    return HcmStampResult::kOk;
+  }
+
+  static FrameReading Check(const Descriptor & imu,
+      std::uint32_t streamTag,
+      std::uint64_t & payloadBytes)
+  {
+    payloadBytes = sizeof(imu.linear_acceleration_covariance);
+    FrameReading reading = CheckDoubles(imu.linear_acceleration_covariance,
+        std::size(imu.linear_acceleration_covariance), streamTag);
+    if (reading.check == FrameCheck::kOk &&
+        (imu.frameId != kFrameId || imu.orientation.w != 1.0 ||
+         imu.orientation_covariance[0] != -1.0))
+      reading.check = FrameCheck::kBadLayout;
+    return reading;
+  }
+};
+
 // --- sensor.v1.PointCloud2 (DMA-BUF) ------------------------------------------
 
 /** One row of `payload_bytes / 16` points x, y, z, intensity (FLOAT32). */

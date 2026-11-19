@@ -17,6 +17,7 @@
 #include "qrb/contract/geometry/v1/vector3_stamped.pb.h"
 #include "qrb/contract/nav/v1/odometry.pb.h"
 #include "qrb/contract/sensor/v1/image_layout.pb.h"
+#include "qrb/contract/sensor/v1/imu.pb.h"
 #include "qrb/contract/sensor/v1/joint_state.pb.h"
 #include "qrb/contract/sensor/v1/point_cloud2.pb.h"
 #include "qrb/contract/tf2/v1/tf_message.pb.h"
@@ -124,6 +125,16 @@ ConversionResult ResolveImageLayout(const qrb::contract::sensor::v1::ImageLayout
 /** @brief Checks the header, shape, encoding and layout of an ImageLayout Contract. */
 ConversionResult ValidateImageLayout(const qrb::contract::sensor::v1::ImageLayout & image,
     std::uint64_t externalPayloadSize);
+
+/**
+ * @brief Checks the header, presence and finiteness of orientation,
+ * angular_velocity and linear_acceleration, and that each covariance array is
+ * empty or contains exactly 9 values.
+ *
+ * Per REP-145, a zero orientation quaternion is accepted when
+ * orientation_covariance[0] == -1, which signals that orientation is unknown.
+ */
+ConversionResult ValidateImu(const qrb::contract::sensor::v1::Imu & imu);
 
 /**
  * @brief Checks a detection array a peer sent or this side built.
