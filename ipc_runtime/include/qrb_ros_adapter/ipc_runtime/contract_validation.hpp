@@ -9,6 +9,7 @@
 
 #include "qrb/contract/common/v1/header.pb.h"
 #include "qrb/contract/geometry/v1/pose_with_covariance_stamped.pb.h"
+#include "qrb/contract/sensor/v1/imu.pb.h"
 #include "qrb/contract/sensor/v1/point_cloud2.pb.h"
 #include "qrb_ros_adapter/ipc_runtime/contract_limits.hpp"
 #include "qrb_ros_adapter/ipc_runtime/conversion_result.hpp"
@@ -26,6 +27,8 @@ ConversionResult ValidatePoseWithCovarianceStamped(
 
 ConversionResult ValidatePointCloud2(const qrb::contract::sensor::v1::PointCloud2 & cloud,
     std::uint64_t externalPayloadSize);
+
+ConversionResult ValidateImu(const qrb::contract::sensor::v1::Imu & imu);
 
 }  // namespace qrb::adapter
 

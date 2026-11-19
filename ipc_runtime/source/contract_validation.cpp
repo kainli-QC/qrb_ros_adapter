@@ -141,4 +141,45 @@ ConversionResult ValidatePointCloud2(const qrb::contract::sensor::v1::PointCloud
   return ConversionResult::Success();
 }
 
+ConversionResult ValidateImu(const qrb::contract::sensor::v1::Imu & imu)
+{
+  if (!imu.has_header())
+    return Fail("IMU header is missing");
+  ConversionResult header = ValidateHeader(imu.header());
+  if (!header)
+    return header;
+
+  if (!imu.has_orientation())
+    return Fail("IMU orientation is required");
+  const auto & q = imu.orientation();
+  if (!std::isfinite(q.x()) || !std::isfinite(q.y()) ||
+      !std::isfinite(q.z()) || !std::isfinite(q.w()))
+    return Fail("IMU orientation contains non-finite values");
+  if (q.x() == 0.0 && q.y() == 0.0 && q.z() == 0.0 && q.w() == 0.0)
+    return Fail("IMU orientation quaternion must be non-zero");
+
+  if (!imu.has_angular_velocity())
+    return Fail("IMU angular_velocity is required");
+  const auto & av = imu.angular_velocity();
+  if (!std::isfinite(av.x()) || !std::isfinite(av.y()) || !std::isfinite(av.z()))
+    return Fail("IMU angular_velocity contains non-finite values");
+
+  if (!imu.has_linear_acceleration())
+    return Fail("IMU linear_acceleration is required");
+  const auto & la = imu.linear_acceleration();
+  if (!std::isfinite(la.x()) || !std::isfinite(la.y()) || !std::isfinite(la.z()))
+    return Fail("IMU linear_acceleration contains non-finite values");
+
+  if (imu.orientation_covariance_size() != 0 && imu.orientation_covariance_size() != 9)
+    return Fail("orientation_covariance must be empty or contain 9 values");
+  if (imu.angular_velocity_covariance_size() != 0 &&
+      imu.angular_velocity_covariance_size() != 9)
+    return Fail("angular_velocity_covariance must be empty or contain 9 values");
+  if (imu.linear_acceleration_covariance_size() != 0 &&
+      imu.linear_acceleration_covariance_size() != 9)
+    return Fail("linear_acceleration_covariance must be empty or contain 9 values");
+
+  return ConversionResult::Success();
+}
+
 }  // namespace qrb::adapter
