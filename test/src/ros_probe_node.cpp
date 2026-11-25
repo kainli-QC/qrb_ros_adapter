@@ -517,10 +517,7 @@ struct RosProbeSample<adapter::ImuRosMessage>
       return SendOutcome::kSent;
     }
 
-    std::uint64_t PayloadBytes() const
-    {
-      return sizeof(Message{}.linear_acceleration_covariance);
-    }
+    std::uint64_t PayloadBytes() const { return sizeof(Message{}.linear_acceleration_covariance); }
 
   private:
     std::uint32_t streamTag_;
@@ -535,7 +532,7 @@ struct RosProbeSample<adapter::ImuRosMessage>
         imu.linear_acceleration_covariance.size(), streamTag);
     if (reading.check == FrameCheck::kOk &&
         (imu.header.frame_id != kFrameId || imu.orientation.w != 1.0 ||
-         imu.orientation_covariance[0] != -1.0))
+            imu.orientation_covariance[0] != -1.0))
       reading.check = FrameCheck::kBadLayout;
     return reading;
   }

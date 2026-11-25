@@ -719,15 +719,14 @@ struct HcmProbeSample<adapter::ImuHcmDescriptor>
     imu.linear_acceleration.x = 0.0;
     imu.linear_acceleration.y = 0.0;
     imu.linear_acceleration.z = 0.0;
-    std::fill(std::begin(imu.orientation_covariance),
-        std::end(imu.orientation_covariance), -1.0);
+    std::fill(std::begin(imu.orientation_covariance), std::end(imu.orientation_covariance), -1.0);
     std::fill(std::begin(imu.angular_velocity_covariance),
         std::end(imu.angular_velocity_covariance), -1.0);
     const std::uint64_t now = MonotonicNowNs();
     state.lastSendNs = now;
     imu.timestampNs = now;
-    StampDoubles(imu.linear_acceleration_covariance,
-        std::size(imu.linear_acceleration_covariance), state.streamTag, sequence, now);
+    StampDoubles(imu.linear_acceleration_covariance, std::size(imu.linear_acceleration_covariance),
+        state.streamTag, sequence, now);
     return HcmStampResult::kOk;
   }
 
@@ -738,9 +737,8 @@ struct HcmProbeSample<adapter::ImuHcmDescriptor>
     payloadBytes = sizeof(imu.linear_acceleration_covariance);
     FrameReading reading = CheckDoubles(imu.linear_acceleration_covariance,
         std::size(imu.linear_acceleration_covariance), streamTag);
-    if (reading.check == FrameCheck::kOk &&
-        (imu.frameId != kFrameId || imu.orientation.w != 1.0 ||
-         imu.orientation_covariance[0] != -1.0))
+    if (reading.check == FrameCheck::kOk && (imu.frameId != kFrameId || imu.orientation.w != 1.0 ||
+                                                imu.orientation_covariance[0] != -1.0))
       reading.check = FrameCheck::kBadLayout;
     return reading;
   }

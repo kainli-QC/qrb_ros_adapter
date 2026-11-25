@@ -18,8 +18,8 @@
 #include "qrb_ros_adapter/ipc_runtime/contract_limits.hpp"
 #include "qrb_ros_adapter/ipc_runtime/contract_time.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/image_ros_converter.hpp"
-#include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/joint_state_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/imu_ros_converter.hpp"
+#include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/joint_state_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/odometry_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/point_cloud_ros_converter.hpp"
 #include "qrb_ros_adapter/ros_ipc_bridge/flow_bridge/pose_array_ros_converter.hpp"
@@ -78,7 +78,7 @@ PointCloudRosMessage MakeRosCloud(std::size_t bufferSize = kCloudBytes)
   cloud.is_dense = true;
   cloud.fields = {Field("i8", 0, PF::INT8), Field("u8", 1, PF::UINT8), Field("i16", 2, PF::INT16),
       Field("u16", 4, PF::UINT16), Field("i32", 8, PF::INT32), Field("u32", 12, PF::UINT32),
-                  Field("f32", 16, PF::FLOAT32), Field("f64", 24, PF::FLOAT64)};
+      Field("f32", 16, PF::FLOAT32), Field("f64", 24, PF::FLOAT64)};
   cloud.data_fd = MakeMemfdBuffer(bufferSize);
   return cloud;
 }
@@ -722,7 +722,8 @@ TEST(Vector3StampedRosConverter, MapsEveryFieldBothWaysAndRejectsInvalidValues)
 // UT-ROS-08: sensor_msgs/Imu maps 1:1 to the Contract; covariates with 9 values
 // round-trip exactly, an empty Contract covariance returns the zero array, and
 // an invalid value is rejected in either direction.
-TEST(ImuRosConverter, MapsEveryFieldBothWaysAndRejectsInvalidValues) {
+TEST(ImuRosConverter, MapsEveryFieldBothWaysAndRejectsInvalidValues)
+{
   ImuRosMessage ros;
   ros.header.stamp.sec = 3;
   ros.header.stamp.nanosec = 250000000;

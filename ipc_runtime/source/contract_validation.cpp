@@ -546,15 +546,14 @@ ConversionResult ValidateImu(const qrb::contract::sensor::v1::Imu & imu)
   if (!imu.has_orientation())
     return Fail("IMU orientation is required");
   const auto & q = imu.orientation();
-  if (!std::isfinite(q.x()) || !std::isfinite(q.y()) ||
-      !std::isfinite(q.z()) || !std::isfinite(q.w()))
+  if (!std::isfinite(q.x()) || !std::isfinite(q.y()) || !std::isfinite(q.z()) ||
+      !std::isfinite(q.w()))
     return Fail("IMU orientation contains non-finite values");
   // Per REP-145: orientation_covariance[0] == -1 signals that orientation is
   // unknown; the quaternion values are meaningless and may be all zero.
   const bool orientationUnknown =
       imu.orientation_covariance_size() > 0 && imu.orientation_covariance(0) == -1.0;
-  if (!orientationUnknown &&
-      q.x() == 0.0 && q.y() == 0.0 && q.z() == 0.0 && q.w() == 0.0)
+  if (!orientationUnknown && q.x() == 0.0 && q.y() == 0.0 && q.z() == 0.0 && q.w() == 0.0)
     return Fail("IMU orientation quaternion must be non-zero");
 
   if (!imu.has_angular_velocity())
@@ -571,8 +570,7 @@ ConversionResult ValidateImu(const qrb::contract::sensor::v1::Imu & imu)
 
   if (imu.orientation_covariance_size() != 0 && imu.orientation_covariance_size() != 9)
     return Fail("orientation_covariance must be empty or contain 9 values");
-  if (imu.angular_velocity_covariance_size() != 0 &&
-      imu.angular_velocity_covariance_size() != 9)
+  if (imu.angular_velocity_covariance_size() != 0 && imu.angular_velocity_covariance_size() != 9)
     return Fail("angular_velocity_covariance must be empty or contain 9 values");
   if (imu.linear_acceleration_covariance_size() != 0 &&
       imu.linear_acceleration_covariance_size() != 9)
